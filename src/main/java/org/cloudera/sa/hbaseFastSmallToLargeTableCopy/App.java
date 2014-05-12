@@ -9,12 +9,16 @@ public class App
 {
     public static void main( String[] args ) throws Exception
     {
+      System.out.println("Version: 0.0.3");
+      
       if (args.length == 0) {
         System.out.println("commends:");
         System.out.println("CreateTables: This will create tables");
         System.out.println("PopulateSmallTable: This will populate the small tables");
         System.out.println("CopyDataFromSmallToLargeTable: generate HFiles for Large Table");
         System.out.println("ImportToLargerTableMain: import generated HFiles into Large Table");
+        System.out.println("ValidateCopyOutput: reads the large table regions and confirms no copy files span a region");
+        return;
       }
       String command = args[0];
       
@@ -29,6 +33,8 @@ public class App
         CopyDataFromSmallToLargeTableMain.main(subArgs);
       } else if (command.equals("ImportToLargerTableMain")) {
         ImportToLargerTableMain.main(subArgs);
+      } else if (command.equals("ValidateCopyOutput")) {
+        ValidateCopyOutputMain.main(subArgs);
       } else {
         System.out.println("Involve command:" + command);
       }

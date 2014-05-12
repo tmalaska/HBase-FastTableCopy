@@ -52,6 +52,7 @@ public class PopulateSmallTableMain {
 
 		// Create job
 		Job job = Job.getInstance();
+		HBaseConfiguration.addHbaseResources(job.getConfiguration());
 
 		job.setJarByClass(PopulateSmallTableMain.class);
 		job.setJobName("PopulateSmallTableMain: " + runID);
@@ -107,10 +108,14 @@ public class PopulateSmallTableMain {
 		
 		@Override
 		public void setup(Context context) {
-			columnFamily = Bytes.toBytes(context.getConfiguration().get(COLUMN_FAMILY));
+		  System.out.println("starting setup");
+			
+		  columnFamily = Bytes.toBytes(context.getConfiguration().get(COLUMN_FAMILY));
 			runID = context.getConfiguration().get(RUN_ID);
 			taskId = context.getTaskAttemptID().getTaskID().getId();
 			numberOfRecords = context.getConfiguration().getInt(NUMBER_OF_RECORDS, 1000) / context.getConfiguration().getInt("nmapinputformat.num.maps", 1);
+			
+			System.out.println("finished setup");
 		}
 
 		Random r = new Random();
@@ -119,8 +124,14 @@ public class PopulateSmallTableMain {
 		public void map(NullWritable key, NullWritable value, Context context)
 				throws IOException, InterruptedException {
 			
+		  System.out.println("starting mapper");
+		  System.out.println();
 			for (int i = 0; i < numberOfRecords; i++) {
 				String keyRoot = StringUtils.leftPad(Integer.toString(r.nextInt(Short.MAX_VALUE)), 5, '0');
+			
+				if(i % 1000 == 0) {
+				  System.out.print(".");
+				}
 				
 				hKey.set(Bytes.toBytes(keyRoot + "|" + runID + "|" + taskId ));
 		        
@@ -129,6 +140,8 @@ public class PopulateSmallTableMain {
 	
 		        context.write(hKey, kv);
 			}
+			
+			System.out.println("finished mapper");
 		}
 	}
 }

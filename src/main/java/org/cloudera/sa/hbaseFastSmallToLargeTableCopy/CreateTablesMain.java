@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
@@ -32,7 +33,9 @@ public class CreateTablesMain {
 		
 		long regionMaxSize = 107374182400l;
 		
-		HBaseAdmin admin = new HBaseAdmin(new Configuration());
+		Configuration config = HBaseConfiguration.addHbaseResources(new Configuration());
+    
+		HBaseAdmin admin = new HBaseAdmin(config);
 		
 		createTable(smallTableName, columnFamilyName, Short.parseShort(smallRegionCount), regionMaxSize, admin);
 		createTable(largeTableName, columnFamilyName, Short.parseShort(largeRegionCount), regionMaxSize, admin); 
@@ -42,11 +45,13 @@ public class CreateTablesMain {
 		System.out.println("Done");
 	}
 
-	private static void createTable(String smallTableName, String columnFamilyName,
+	private static void createTable(String tableName, String columnFamilyName,
 			short regionCount, long regionMaxSize, HBaseAdmin admin)
 			throws IOException {
+	  System.out.println("Creating Table: " + tableName);
+	  
 		HTableDescriptor tableDescriptor = new HTableDescriptor(); 
-		tableDescriptor.setName(Bytes.toBytes(smallTableName));
+		tableDescriptor.setName(Bytes.toBytes(tableName));
 		
 		HColumnDescriptor columnDescriptor = new HColumnDescriptor(columnFamilyName);
 		
@@ -61,21 +66,19 @@ public class CreateTablesMain {
 		
 		tableDescriptor.setDeferredLogFlush(true);
 		
-		HRegionServer rs;
-		
-		DataNode g;
-		
 		regionCount = (short)Math.abs(regionCount);
 		
 		int regionRange = Short.MAX_VALUE/regionCount;
 		int counter = 0;
 		
 		byte[][] splitKeys = new byte[regionCount][];
-		for (byte[] splitKey: splitKeys) {
+		for (int i = 0 ; i < splitKeys.length; i++) {
 			counter = counter + regionRange;
 			String key = StringUtils.leftPad(Integer.toString(counter), 5, '0');
-			splitKey = Bytes.toBytes(key); 
-			System.out.println(" - Split: " + splitKey);
+			splitKeys[i] = Bytes.toBytes(key); 
+			System.out.println(" - Split: " + i + " '" + key + "'");
 		}
+		
+		admin.createTable(tableDescriptor, splitKeys);
 	}
 }

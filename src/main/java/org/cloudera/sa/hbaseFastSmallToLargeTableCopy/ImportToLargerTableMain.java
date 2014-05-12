@@ -20,6 +20,8 @@ public class ImportToLargerTableMain {
     String hTableName = args[1];
     
     Configuration config = HBaseConfiguration.create();
+    HBaseConfiguration.addHbaseResources(config);
+    
     HTable hTable = new HTable(config, hTableName);
     
     FileSystem hdfs = FileSystem.get(config);

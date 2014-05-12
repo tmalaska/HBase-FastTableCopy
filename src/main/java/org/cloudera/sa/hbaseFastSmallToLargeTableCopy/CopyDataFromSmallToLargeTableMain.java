@@ -8,6 +8,7 @@ import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -54,8 +55,11 @@ public class CopyDataFromSmallToLargeTableMain {
     String largeTable = args[1];
     String columnFamily = args[2];
     String outputPath = args[3];
-
+    
     Job job = Job.getInstance();
+    
+    HBaseConfiguration.addHbaseResources(job.getConfiguration());
+    
     job.getConfiguration().set(CONF_LARGE_TABLE, largeTable);
     job.getConfiguration().set(CONF_COLUMN_FAMILY, columnFamily);
     job.getConfiguration().set(CONF_OUTPUT_PATH, outputPath);
@@ -78,6 +82,8 @@ public class CopyDataFromSmallToLargeTableMain {
                                                       // emitting anything from
                                                       // mapper
 
+    job.setNumReduceTasks(0);
+    
     boolean b = job.waitForCompletion(true);
   }
 
@@ -93,6 +99,7 @@ public class CopyDataFromSmallToLargeTableMain {
     HColumnDescriptor familyDescriptor;
     int hFileCounter = 0;
     String uniqueName;
+    String outputPath;
     int currentWritingToRegion = 0;
     ArrayList<byte[]> endKeyList;
     
@@ -100,11 +107,13 @@ public class CopyDataFromSmallToLargeTableMain {
     public void setup(Context context) throws TableNotFoundException,
         IOException {
       Configuration conf = context.getConfiguration();
+      conf = HBaseConfiguration.addHbaseResources(conf);
+      
       String largeTable = conf.get(CONF_LARGE_TABLE);
       String columnFamily = conf.get(CONF_COLUMN_FAMILY);
       String outputPath = conf.get(CONF_OUTPUT_PATH);
 
-      HBaseAdmin admin = new HBaseAdmin(context.getConfiguration());
+      HBaseAdmin admin = new HBaseAdmin(conf);
       HTableDescriptor largeTD = admin.getTableDescriptor(Bytes
           .toBytes(largeTable));
     
@@ -113,21 +122,22 @@ public class CopyDataFromSmallToLargeTableMain {
       for (HRegionInfo ri: regions) {
         endKeyList.add(ri.getEndKey());
       }
+      endKeyList.add(Bytes.toBytes("99999"));
       Collections.sort(endKeyList,  Bytes.BYTES_COMPARATOR);
       
-      prepValueForStoreFileWriter(conf, columnFamily, largeTD);
+      prepValueForStoreFileWriter(conf, columnFamily, largeTD, outputPath);
       
-      uniqueName = Bytes.toBytes(largeTable) + "," + context.getTaskAttemptID().getTaskID().getId();
+      fs.mkdirs(new Path(outputPath));
       
+      uniqueName = largeTable + "." + context.getTaskAttemptID().getTaskID().getId();
       
-
       admin.close();
     }
 
-    private void createNewStoreFileWriter(Configuration conf, int regionNum)
+    private void createNewStoreFileWriter(Configuration conf, int regionNum, String outputRootPath)
         throws IOException {
       storeFileWriter = new StoreFile.WriterBuilder(conf,
-          cacheConf, fs, blocksize).withFilePath(new Path(uniqueName + "." + hFileCounter++ + "." + regionNum))
+          cacheConf, fs, blocksize).withFilePath(new Path(outputRootPath + "/" + uniqueName + "." + hFileCounter++ + "." + regionNum))
           .withCompression(compression).withDataBlockEncoder(dataBlockEncoder)
           .withBloomType(bloomFilterType)
           .withChecksumType(Store.getChecksumType(conf))
@@ -135,7 +145,8 @@ public class CopyDataFromSmallToLargeTableMain {
     }
 
     private void prepValueForStoreFileWriter(Configuration conf,
-        String columnFamily, HTableDescriptor largeTD) throws IOException {
+        String columnFamily, HTableDescriptor largeTD,
+        String outputPath) throws IOException {
       familyDescriptor = largeTD.getFamily(Bytes
           .toBytes(columnFamily));
 
@@ -148,6 +159,7 @@ public class CopyDataFromSmallToLargeTableMain {
       dataBlockEncoder = new HFileDataBlockEncoderImpl(
           familyDescriptor.getDataBlockEncodingOnDisk(),
           familyDescriptor.getDataBlockEncoding());
+      this.outputPath = outputPath;
     }
 
     @Override
@@ -163,7 +175,12 @@ public class CopyDataFromSmallToLargeTableMain {
             break;
           }
         }
-        createNewStoreFileWriter(context.getConfiguration(), currentWritingToRegion);
+        System.out.println();
+        System.out.println("Writing to regions: " + 
+           currentWritingToRegion + " " + 
+           Bytes.toString(row.get()) );
+        System.out.println();
+        createNewStoreFileWriter(context.getConfiguration(), currentWritingToRegion, outputPath);
       } else {
         if (Bytes.compareTo(endKeyList.get(currentWritingToRegion), row.get()) <= 0) {
           
@@ -175,11 +192,17 @@ public class CopyDataFromSmallToLargeTableMain {
               break;
             }
           }
-          createNewStoreFileWriter(context.getConfiguration(), currentWritingToRegion);
+          System.out.println();
+          System.out.println("Writing to regions: " + 
+              currentWritingToRegion + " " + 
+              Bytes.toString(row.get()) + " " );
+          System.out.println();
+          createNewStoreFileWriter(context.getConfiguration(), currentWritingToRegion, outputPath);
         }
       }
       
       for (KeyValue kv: value.raw()) {
+        System.out.print(".");
         storeFileWriter.append(kv);
       }
     }
