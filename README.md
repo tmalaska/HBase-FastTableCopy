@@ -8,18 +8,18 @@ This implementation will scan table 'A' and generated the HFiles for table 'B' t
 
 ### How to Run
 
-* *Set up sample tables*
-hadoop jar SmallToLargeTableCopy.jar CreateTables small large c 20 80
+#### Set up sample tables
+* hadoop jar SmallToLargeTableCopy.jar CreateTables small large c 20 80
 
-* *Populate the small table*
-hadoop jar SmallToLargeTableCopy.jar PopulateSmallTable 10 100000 hbase/tmp small c 1
+#### Populate the small table
+* hadoop jar SmallToLargeTableCopy.jar PopulateSmallTable 10 100000 hbase/tmp small c 1
 
-* *Copy the data from the small table and generate new HFiles*
-hadoop jar SmallToLargeTableCopy.jar CopyDataFromSmallToLargeTable small large c hbase/copy
+#### Copy the data from the small table and generate new HFiles
+* hadoop jar SmallToLargeTableCopy.jar CopyDataFromSmallToLargeTable small large c hbase/copy
 
-* *Validate the files*
-hadoop jar SmallToLargeTableCopy.jar ValidateCopyOutput hbase/copy/c large
+#### Validate the files
+* hadoop jar SmallToLargeTableCopy.jar ValidateCopyOutput hbase/copy/c large
 
-* *Use HBase Import to move HFiles into Large table*
-hadoop jar SmallToLargeTableCopy.jar ImportToLargerTableMain hbase/copy large
+#### Use HBase Import to move HFiles into Large table
+* hadoop jar SmallToLargeTableCopy.jar ImportToLargerTableMain hbase/copy large
 
