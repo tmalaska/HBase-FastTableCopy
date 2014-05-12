@@ -71,6 +71,7 @@ public class CopyDataFromSmallToLargeTableMain {
     scan.setCaching(500); // 1 is the default in Scan, which will be bad for
                           // MapReduce jobs
     scan.setCacheBlocks(false); // don't set to true for MR jobs
+    scan.addFamily(Bytes.toBytes(columnFamily));
 
     TableMapReduceUtil.initTableMapperJob(smallTable, // input HBase table name
         scan, // Scan instance to control CF and attribute selection
@@ -100,6 +101,7 @@ public class CopyDataFromSmallToLargeTableMain {
     int hFileCounter = 0;
     String uniqueName;
     String outputPath;
+    String columnFamily;
     int currentWritingToRegion = 0;
     ArrayList<byte[]> endKeyList;
     
@@ -134,14 +136,16 @@ public class CopyDataFromSmallToLargeTableMain {
       admin.close();
     }
 
-    private void createNewStoreFileWriter(Configuration conf, int regionNum, String outputRootPath)
+    private void createNewStoreFileWriter(Configuration conf, int regionNum, String outputRootPath, String columnFamily)
         throws IOException {
       storeFileWriter = new StoreFile.WriterBuilder(conf,
-          cacheConf, fs, blocksize).withFilePath(new Path(outputRootPath + "/" + uniqueName + "." + hFileCounter++ + "." + regionNum))
+          cacheConf, fs, blocksize).withFilePath(new Path(outputRootPath + "/" + columnFamily + "/" + uniqueName + "." + hFileCounter++ + "." + regionNum))
           .withCompression(compression).withDataBlockEncoder(dataBlockEncoder)
           .withBloomType(bloomFilterType)
           .withChecksumType(Store.getChecksumType(conf))
           .withBytesPerChecksum(Store.getBytesPerChecksum(conf)).build();
+      
+      
     }
 
     private void prepValueForStoreFileWriter(Configuration conf,
@@ -153,6 +157,7 @@ public class CopyDataFromSmallToLargeTableMain {
       blocksize = familyDescriptor.getBlocksize();
 
       fs = FileSystem.get(conf);
+      this.columnFamily =columnFamily;  
       cacheConf = new CacheConfig(conf);
       compression = familyDescriptor.getCompression();
       bloomFilterType = familyDescriptor.getBloomFilterType();
@@ -180,7 +185,7 @@ public class CopyDataFromSmallToLargeTableMain {
            currentWritingToRegion + " " + 
            Bytes.toString(row.get()) );
         System.out.println();
-        createNewStoreFileWriter(context.getConfiguration(), currentWritingToRegion, outputPath);
+        createNewStoreFileWriter(context.getConfiguration(), currentWritingToRegion, outputPath, columnFamily);
       } else {
         if (Bytes.compareTo(endKeyList.get(currentWritingToRegion), row.get()) <= 0) {
           
@@ -197,7 +202,7 @@ public class CopyDataFromSmallToLargeTableMain {
               currentWritingToRegion + " " + 
               Bytes.toString(row.get()) + " " );
           System.out.println();
-          createNewStoreFileWriter(context.getConfiguration(), currentWritingToRegion, outputPath);
+          createNewStoreFileWriter(context.getConfiguration(), currentWritingToRegion, outputPath, columnFamily);
         }
       }
       

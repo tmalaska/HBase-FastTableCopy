@@ -9,7 +9,7 @@ public class App
 {
     public static void main( String[] args ) throws Exception
     {
-      System.out.println("Version: 0.0.3");
+      System.out.println("Version: 0.0.4");
       
       if (args.length == 0) {
         System.out.println("commends:");

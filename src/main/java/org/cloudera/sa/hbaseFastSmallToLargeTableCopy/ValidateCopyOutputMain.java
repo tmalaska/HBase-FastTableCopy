@@ -53,10 +53,11 @@ public class ValidateCopyOutputMain {
           new CacheConfig(conf));
       
       System.out.println("File: " + storeFile.getPath());
-      System.out.println(" - FirstKey: " + hfr.getFirstKey());
-      System.out.println(" - FirstRowKey: " + hfr.getFirstRowKey());
-      System.out.println(" - LastKey: " + hfr.getLastKey());
-      System.out.println(" - LastRowKey: " + hfr.getLastRowKey());
+      System.out.println(" - FirstKey: " + Bytes.toString(hfr.getFirstKey()));
+      System.out.println(" - FirstRowKey: " + Bytes.toString(hfr.getFirstRowKey()));
+      System.out.println(" - LastKey: " + Bytes.toString(hfr.getLastKey()));
+      System.out.println(" - LastRowKey: " + Bytes.toString(hfr.getLastRowKey()));
+      System.out.println(" - columnFamilyName: " + hfr.getColumnFamilyName());
       System.out.println(" - Entries: " + hfr.getEntries());
       
       int startingRegion = 0;
