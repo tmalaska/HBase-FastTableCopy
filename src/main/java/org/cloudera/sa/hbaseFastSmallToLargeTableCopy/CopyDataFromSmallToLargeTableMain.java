@@ -109,7 +109,7 @@ public class CopyDataFromSmallToLargeTableMain {
     public void setup(Context context) throws TableNotFoundException,
         IOException {
       Configuration conf = context.getConfiguration();
-      conf = HBaseConfiguration.addHbaseResources(conf);
+      //conf = HBaseConfiguration.addHbaseResources(conf);
       
       String largeTable = conf.get(CONF_LARGE_TABLE);
       String columnFamily = conf.get(CONF_COLUMN_FAMILY);
